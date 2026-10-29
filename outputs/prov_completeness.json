@@ -1,0 +1,34 @@
+{
+  "chb01_seizure": {
+    "SoftwareAgent": true,
+    "Activity": true,
+    "Entity": true,
+    "wasAssociatedWith": true,
+    "wasGeneratedBy": true,
+    "generatedAtTime": true
+  },
+  "chb01_nonsz": {
+    "SoftwareAgent": true,
+    "Activity": true,
+    "Entity": true,
+    "wasAssociatedWith": true,
+    "wasGeneratedBy": true,
+    "generatedAtTime": true
+  },
+  "S001_rest": {
+    "SoftwareAgent": true,
+    "Activity": true,
+    "Entity": true,
+    "wasAssociatedWith": true,
+    "wasGeneratedBy": true,
+    "generatedAtTime": true
+  },
+  "S001_task": {
+    "SoftwareAgent": true,
+    "Activity": true,
+    "Entity": true,
+    "wasAssociatedWith": true,
+    "wasGeneratedBy": true,
+    "generatedAtTime": true
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "S001_rest": {
+    "n_triples": 38493,
+    "n_named_graphs": 8,
+    "n_subjects": 3879,
+    "n_predicates": 26,
+    "n_objects": 4167
+  },
+  "S001_task": {
+    "n_triples": 116013,
+    "n_named_graphs": 16,
+    "n_subjects": 11635,
+    "n_predicates": 26,
+    "n_objects": 11939
+  }
+}

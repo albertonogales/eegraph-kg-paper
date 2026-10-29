@@ -1,0 +1,149 @@
+@prefix sh:    <http://www.w3.org/ns/shacl#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix sosa:  <http://www.w3.org/ns/sosa/> .
+@prefix prov:  <http://www.w3.org/ns/prov#> .
+@prefix time:  <http://www.w3.org/2006/time#> .
+@prefix eego:  <http://eegraph.org/ontology#> .
+@prefix eegos: <http://eegraph.org/shapes#> .
+
+# ── ConnectivityEdge ─────────────────────────────────────────────────────────
+
+eegos:ConnectivityEdgeShape
+    a sh:NodeShape ;
+    sh:targetClass eego:ConnectivityEdge ;
+    rdfs:label "ConnectivityEdge shape" ;
+
+    sh:property [
+        sh:path eego:sourceElectrode ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "Each ConnectivityEdge must have exactly one sourceElectrode." ;
+    ] ;
+
+    sh:property [
+        sh:path eego:targetElectrode ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "Each ConnectivityEdge must have exactly one targetElectrode." ;
+    ] ;
+
+    sh:property [
+        sh:path eego:inWindow ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "Each ConnectivityEdge must belong to exactly one TimeWindow." ;
+    ] ;
+
+    sh:property [
+        sh:path eego:weight ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:message "Each ConnectivityEdge must carry exactly one decimal weight." ;
+    ] ;
+
+    sh:property [
+        sh:path eego:connectivityMeasure ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "Each ConnectivityEdge must reference exactly one ConnectivityMeasure." ;
+    ] ;
+
+    # source ≠ target
+    sh:sparql [
+        sh:message "Source and target electrode of a ConnectivityEdge must differ." ;
+        sh:select """
+            PREFIX eego: <http://eegraph.org/ontology#>
+            SELECT $this
+            WHERE {
+                $this eego:sourceElectrode ?src ;
+                      eego:targetElectrode ?tgt .
+                FILTER (?src = ?tgt)
+            }
+        """ ;
+    ] .
+
+# ── BipolarChannel ────────────────────────────────────────────────────────────
+
+eegos:BipolarChannelShape
+    a sh:NodeShape ;
+    sh:targetClass eego:BipolarChannel ;
+    rdfs:label "BipolarChannel shape" ;
+
+    sh:property [
+        sh:path eego:positivePole ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class eego:Electrode ;
+        sh:message "Each BipolarChannel must have exactly one positivePole." ;
+    ] ;
+
+    sh:property [
+        sh:path eego:negativePole ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class eego:Electrode ;
+        sh:message "Each BipolarChannel must have exactly one negativePole." ;
+    ] ;
+
+    # positive pole ≠ negative pole
+    sh:sparql [
+        sh:message "positivePole and negativePole of a BipolarChannel must differ." ;
+        sh:select """
+            PREFIX eego: <http://eegraph.org/ontology#>
+            SELECT $this
+            WHERE {
+                $this eego:positivePole ?pos ;
+                      eego:negativePole ?neg .
+                FILTER (?pos = ?neg)
+            }
+        """ ;
+    ] .
+
+# ── ConnectivityComputation ───────────────────────────────────────────────────
+
+eegos:ConnectivityComputationShape
+    a sh:NodeShape ;
+    sh:targetClass eego:ConnectivityComputation ;
+    rdfs:label "ConnectivityComputation shape" ;
+
+    sh:property [
+        sh:path eego:threshold ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:message "Each ConnectivityComputation must carry exactly one threshold value." ;
+    ] ;
+
+    sh:property [
+        sh:path eego:thresholdRule ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "Each ConnectivityComputation must reference exactly one ThresholdRule." ;
+    ] .
+
+# ── TimeWindow ────────────────────────────────────────────────────────────────
+
+eegos:TimeWindowShape
+    a sh:NodeShape ;
+    sh:targetClass eego:TimeWindow ;
+    rdfs:label "TimeWindow shape" ;
+
+    sh:property [
+        sh:path time:hasBeginning ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "Each TimeWindow must have exactly one hasBeginning value." ;
+    ] ;
+
+    sh:property [
+        sh:path time:hasDuration ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "Each TimeWindow must have exactly one hasDuration value." ;
+    ] ;
+
+    # duration > 0
+    sh:sparql [
+        sh:message "TimeWindow duration must be greater than zero." ;
+        sh:select """
+            PREFIX time: <http://www.w3.org/2006/time#>
+            SELECT $this
+            WHERE {
+                $this time:hasDuration ?d .
+                FILTER (?d <= 0)
+            }
+        """ ;
+    ] .

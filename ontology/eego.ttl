@@ -1,0 +1,4013 @@
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix sosa:    <http://www.w3.org/ns/sosa/> .
+@prefix time:    <http://www.w3.org/2006/time#> .
+@prefix eego:    <http://eegraph.org/ontology#> .
+@prefix schema:  <https://schema.org/> .
+
+# ── Ontology declaration ──────────────────────────────────────────────────────
+
+<http://eegraph.org/ontology>
+    a owl:Ontology ;
+    rdfs:label "EEGraph EEG Ontology (eego)"^^xsd:string ;
+    dcterms:description "Application ontology for the EEGraph Knowledge Graph. Defines classes and named individuals for EEG connectivity modelling, including electrode positions for the international 10/20 and 10/10 systems. Electrode position terms are introduced here because no currently published OWL ontology provides stable, dereferenceable URIs for individual scalp electrode positions."^^xsd:string ;
+    dcterms:creator "Alberto Nogales"^^xsd:string ;
+    owl:versionInfo "1.0.0"^^xsd:string .
+
+# ── Classes ───────────────────────────────────────────────────────────────────
+
+eego:VirtualSensor
+    a owl:Class ;
+    rdfs:subClassOf sosa:Sensor ;
+    rdfs:label "Virtual sensor"^^xsd:string ;
+    rdfs:comment "A sensor whose signal is derived computationally from one or more physical sensors rather than measured directly by a hardware transducer. Subclass of sosa:Sensor because it acts as the observation platform for derived measurements."^^xsd:string .
+
+eego:Electrode
+    a owl:Class ;
+    rdfs:subClassOf sosa:Sensor ;
+    rdfs:label "EEG electrode"^^xsd:string ;
+    rdfs:comment "A physical scalp electrode used for electroencephalographic recording."^^xsd:string .
+
+eego:BipolarChannel
+    a owl:Class ;
+    rdfs:subClassOf eego:VirtualSensor ;
+    rdfs:label "Bipolar EEG channel"^^xsd:string ;
+    rdfs:comment "A virtual (derived) EEG channel whose signal is the algebraic difference of the potentials at two physical electrodes (positivePole minus negativePole). Modelled as a sosa:Sensor (via eego:VirtualSensor) because it acts as the observation platform for differential measurements, even though it has no physical counterpart — the derivation is performed by the amplifier or in software."^^xsd:string .
+
+eego:ConnectivityEdge
+    a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "EEG connectivity edge"^^xsd:string ;
+    rdfs:comment "A weighted edge representing the functional connectivity between two EEG channels within a time window. May be directed (DTF) or undirected depending on the measure."^^xsd:string .
+
+eego:ConnectivityMeasure
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "EEG connectivity measure"^^xsd:string ;
+    rdfs:comment "A named method for quantifying functional connectivity between EEG channels."^^xsd:string .
+
+eego:ConnectivityComputation
+    a owl:Class ;
+    rdfs:subClassOf prov:Activity ;
+    rdfs:label "Connectivity computation"^^xsd:string ;
+    rdfs:comment "One execution of a connectivity algorithm on one EEG recording. Carries the threshold, threshold rule, and connectivity measure used to produce the edges or node measurements in that run."^^xsd:string .
+
+eego:NodeMeasurement
+    a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "EEG node measurement"^^xsd:string ;
+    rdfs:comment "A per-channel measurement value for a single-channel connectivity measure (e.g. power spectrum, spectral entropy) within a time window."^^xsd:string .
+
+eego:TimeWindow
+    a owl:Class ;
+    rdfs:subClassOf time:Interval ;
+    rdfs:label "EEG time window"^^xsd:string ;
+    rdfs:comment "A fixed-duration segment of an EEG recording over which connectivity is computed."^^xsd:string .
+
+eego:AnnotatedEvent
+    a owl:Class ;
+    rdfs:subClassOf time:Interval ;
+    rdfs:label "Annotated event"^^xsd:string ;
+    rdfs:comment "A time-bounded event annotated in an EEG recording. Covers any temporally anchored marker — clinical findings, experimental stimuli, behavioural responses, or quality flags. Dataset-independent: the event type is expressed via eego:hasEventType."^^xsd:string .
+
+eego:EventType
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Event type"^^xsd:string ;
+    rdfs:comment "A controlled vocabulary term classifying an AnnotatedEvent."^^xsd:string .
+
+# ── Cardinality restrictions ─────────────────────────────────────────────────
+# These subClassOf restrictions express the intended cardinality of each
+# property per domain class.  They complement the owl:FunctionalProperty
+# declarations (which enforce max-1 globally) with min-cardinality axioms and
+# per-class max-1 constraints for properties whose domain is a union.
+
+# BipolarChannel
+eego:BipolarChannel
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:positivePole ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:Electrode ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:negativePole ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:Electrode ] .
+
+# Electrode
+eego:Electrode
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:hasStandardPosition ;
+        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:Electrode ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:scalp2DX ;
+        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:decimal ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:scalp2DY ;
+        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:decimal ] .
+
+# ConnectivityEdge
+eego:ConnectivityEdge
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:sourceElectrode ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass sosa:Sensor ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:targetElectrode ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass sosa:Sensor ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:inWindow ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:TimeWindow ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:derivedFrom ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass sosa:ObservationCollection ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:weight ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:decimal ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:connectivityMeasure ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:ConnectivityMeasure ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:thresholdRule ;
+        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:ThresholdRule ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:frequencyBand ;
+        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:FrequencyBand ] .
+
+# ConnectivityMeasure
+eego:ConnectivityMeasure
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:scope ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:MeasureScope ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:symmetry ;
+        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:MeasureSymmetry ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:bandResolved ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:boolean ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:minValue ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:decimal ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:maxValue ;
+        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:decimal ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:threshold ;
+        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:decimal ] .
+
+# ConnectivityComputation
+eego:ConnectivityComputation
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:connectivityMeasure ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:ConnectivityMeasure ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:threshold ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:decimal ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:thresholdRule ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:ThresholdRule ] .
+
+# NodeMeasurement
+eego:NodeMeasurement
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:measure ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:ConnectivityMeasure ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:ofSensor ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass sosa:Sensor ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:value ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:decimal ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:frequencyBand ;
+        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:FrequencyBand ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:thresholdRule ;
+        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:ThresholdRule ] .
+
+# TimeWindow
+eego:TimeWindow
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:frequencyBand ;
+        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:FrequencyBand ] .
+
+# AnnotatedEvent
+eego:AnnotatedEvent
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:hasEventType ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass eego:EventType ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:inRecording ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass sosa:ObservationCollection ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:eventOnset ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:float ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:eventOffset ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:float ] ;
+    rdfs:subClassOf [
+        a owl:Restriction ; owl:onProperty eego:eventLabel ;
+        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onDataRange xsd:string ] .
+
+# ── Object properties ─────────────────────────────────────────────────────────
+
+eego:positivePole
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:label  "positive pole"^^xsd:string ;
+    rdfs:domain eego:BipolarChannel ;
+    rdfs:range  eego:Electrode ;
+    rdfs:comment "The positive electrode pole of a bipolar channel. Exact cardinality 1."^^xsd:string .
+
+eego:negativePole
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:label  "negative pole"^^xsd:string ;
+    rdfs:domain eego:BipolarChannel ;
+    rdfs:range  eego:Electrode ;
+    rdfs:comment "The negative electrode pole of a bipolar channel. Exact cardinality 1."^^xsd:string .
+
+eego:sourceElectrode
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:label  "source electrode"^^xsd:string ;
+    rdfs:domain eego:ConnectivityEdge ;
+    rdfs:range  sosa:Sensor ;
+    rdfs:comment "The first endpoint of a connectivity edge. Range is sosa:Sensor to accommodate both monopolar and bipolar montages."^^xsd:string .
+
+eego:targetElectrode
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:label  "target electrode"^^xsd:string ;
+    rdfs:domain eego:ConnectivityEdge ;
+    rdfs:range  sosa:Sensor ;
+    rdfs:comment "The second endpoint of a connectivity edge. Range is sosa:Sensor to accommodate both monopolar and bipolar montages."^^xsd:string .
+
+eego:inWindow
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:label  "in window"^^xsd:string ;
+    rdfs:domain eego:ConnectivityEdge ;
+    rdfs:range  eego:TimeWindow ;
+    rdfs:comment "Links a connectivity edge to the time window in which it was computed. Exact cardinality 1."^^xsd:string .
+
+eego:directedConnection
+    a owl:ObjectProperty, owl:IrreflexiveProperty ;
+    rdfs:label  "directed connection"^^xsd:string ;
+    rdfs:domain sosa:Sensor ;
+    rdfs:range  sosa:Sensor ;
+    rdfs:comment "Directed functional connectivity relationship from a source sensor to a target sensor. Used for directed measures such as DTF."^^xsd:string .
+
+eego:measure
+    a owl:ObjectProperty ;
+    rdfs:label  "measure"^^xsd:string ;
+    rdfs:domain eego:NodeMeasurement ;
+    rdfs:range  eego:ConnectivityMeasure ;
+    rdfs:comment "Links a node measurement to the connectivity measure used to compute it."^^xsd:string .
+
+eego:ofSensor
+    a owl:ObjectProperty ;
+    rdfs:label  "of sensor"^^xsd:string ;
+    rdfs:domain eego:NodeMeasurement ;
+    rdfs:range  sosa:Sensor ;
+    rdfs:comment "Links a node measurement to the sensor (electrode or bipolar channel) it was computed for."^^xsd:string .
+
+eego:derivedFrom
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    rdfs:label  "derived from"^^xsd:string ;
+    rdfs:domain eego:ConnectivityEdge ;
+    rdfs:range  sosa:ObservationCollection ;
+    rdfs:comment "Links a connectivity edge to the source EEG recording it was derived from."^^xsd:string .
+
+eego:hasStandardPosition
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:label  "has standard position"^^xsd:string ;
+    rdfs:domain eego:Electrode ;
+    rdfs:range  eego:Electrode ;
+    rdfs:comment "Links a KG electrode instance to the corresponding ontology-defined standard electrode position individual (e.g. from the 10/20, 10/10 or 10/5 system)."^^xsd:string .
+
+# ── Datatype properties ───────────────────────────────────────────────────────
+
+eego:weight
+    a owl:DatatypeProperty ;
+    rdfs:label  "connectivity weight"^^xsd:string ;
+    rdfs:domain eego:ConnectivityEdge ;
+    rdfs:range  xsd:decimal ;
+    rdfs:comment "Numeric connectivity weight. Value bounds depend on the measure; see eego:minValue and eego:maxValue on the ConnectivityMeasure individual. Exact cardinality 1 per ConnectivityEdge."^^xsd:string .
+
+eego:value
+    a owl:DatatypeProperty ;
+    rdfs:label  "measurement value"^^xsd:string ;
+    rdfs:domain eego:NodeMeasurement ;
+    rdfs:range  xsd:decimal ;
+    rdfs:comment "Numeric value of a per-channel measurement."^^xsd:string .
+
+
+eego:connectivityMeasure
+    a owl:ObjectProperty ;
+    rdfs:label  "connectivity measure"^^xsd:string ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( eego:ConnectivityEdge eego:ConnectivityComputation ) ] ;
+    rdfs:range  eego:ConnectivityMeasure ;
+    rdfs:comment "Links a connectivity edge or ConnectivityComputation to the ConnectivityMeasure individual describing the method used."^^xsd:string .
+
+eego:threshold
+    a owl:DatatypeProperty ;
+    rdfs:label  "threshold"^^xsd:string ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( eego:ConnectivityComputation eego:ConnectivityMeasure ) ] ;
+    rdfs:range  xsd:decimal ;
+    rdfs:comment "On eego:ConnectivityComputation: the effective edge inclusion threshold applied in that run (exact cardinality 1). On eego:ConnectivityMeasure: the reference threshold for that measure, used when no explicit threshold is supplied by the user."^^xsd:string .
+
+
+eego:scope
+    a owl:ObjectProperty ;
+    rdfs:label  "measure scope"^^xsd:string ;
+    rdfs:domain eego:ConnectivityMeasure ;
+    rdfs:range  eego:MeasureScope ;
+    rdfs:comment "Links a connectivity measure to its scope: Pairwise or SingleChannel."^^xsd:string .
+
+eego:symmetry
+    a owl:ObjectProperty ;
+    rdfs:label  "measure symmetry"^^xsd:string ;
+    rdfs:domain eego:ConnectivityMeasure ;
+    rdfs:range  eego:MeasureSymmetry ;
+    rdfs:comment "Links a connectivity measure to its symmetry class: Symmetric, Asymmetric, Antisymmetric, or Directed."^^xsd:string .
+
+eego:bandResolved
+    a owl:DatatypeProperty ;
+    rdfs:label  "band resolved"^^xsd:string ;
+    rdfs:domain eego:ConnectivityMeasure ;
+    rdfs:range  xsd:boolean ;
+    rdfs:comment "True if the measure is computed per frequency band."^^xsd:string .
+
+eego:minValue
+    a owl:DatatypeProperty ;
+    rdfs:label  "minimum value"^^xsd:string ;
+    rdfs:domain eego:ConnectivityMeasure ;
+    rdfs:range  xsd:decimal ;
+    rdfs:comment "Theoretical minimum of the connectivity measure's output range."^^xsd:string .
+
+eego:maxValue
+    a owl:DatatypeProperty ;
+    rdfs:label  "maximum value"^^xsd:string ;
+    rdfs:domain eego:ConnectivityMeasure ;
+    rdfs:range  xsd:decimal ;
+    rdfs:comment "Theoretical maximum of the connectivity measure's output range. Absent for unbounded measures."^^xsd:string .
+
+eego:frequencyBand
+    a owl:ObjectProperty ;
+    rdfs:label  "frequency band"^^xsd:string ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( eego:ConnectivityEdge eego:NodeMeasurement eego:TimeWindow ) ] ;
+    rdfs:range  eego:FrequencyBand ;
+    rdfs:comment "Links a connectivity edge, node measurement, or time window to the EEG frequency band in which it was computed. Absent for broadband analyses."^^xsd:string .
+
+# schema:sampleRate reused (not redefined) — declared here for documentation only.
+# Usage: sosa:ObservationCollection → schema:sampleRate xsd:decimal (Hz).
+# The property IRI is https://schema.org/sampleRate; eego does not coin a duplicate.
+schema:sampleRate
+    rdfs:label    "sample rate"^^xsd:string ;
+    rdfs:comment  "Sampling frequency of the EEG recording in Hz. Applied to sosa:ObservationCollection instances."^^xsd:string ;
+    rdfs:domain   sosa:ObservationCollection ;
+    rdfs:range    xsd:decimal .
+
+eego:recordingCondition
+    a owl:ObjectProperty ;
+    rdfs:label  "recording condition"^^xsd:string ;
+    rdfs:domain sosa:ObservationCollection ;
+    rdfs:range  eego:RecordingCondition ;
+    rdfs:comment "Links an EEG recording to the experimental or clinical condition under which it was acquired."^^xsd:string .
+
+eego:thresholdRule
+    a owl:ObjectProperty ;
+    rdfs:label  "threshold rule"^^xsd:string ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( eego:ConnectivityComputation eego:ConnectivityEdge eego:NodeMeasurement ) ] ;
+    rdfs:range  eego:ThresholdRule ;
+    rdfs:comment "Links a connectivity computation, connectivity edge, or node measurement to the SKOS concept describing how the inclusion threshold was applied."^^xsd:string .
+
+eego:hasEventType
+    a owl:ObjectProperty, owl:FunctionalProperty ;
+    rdfs:label  "has event type"^^xsd:string ;
+    rdfs:domain eego:AnnotatedEvent ;
+    rdfs:range  eego:EventType ;
+    rdfs:comment "Links an annotated event to the controlled-vocabulary term classifying it."^^xsd:string .
+
+
+eego:inRecording
+    a owl:ObjectProperty ;
+    rdfs:label  "in recording"^^xsd:string ;
+    rdfs:domain eego:AnnotatedEvent ;
+    rdfs:range  sosa:ObservationCollection ;
+    rdfs:comment "Links an annotated event to the EEG recording in which it was annotated."^^xsd:string .
+
+eego:eventOnset
+    a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:label  "event onset"^^xsd:string ;
+    rdfs:domain eego:AnnotatedEvent ;
+    rdfs:range  xsd:float ;
+    rdfs:comment "Start time of the annotated event in seconds from the beginning of the recording."^^xsd:string .
+
+eego:eventOffset
+    a owl:DatatypeProperty, owl:FunctionalProperty ;
+    rdfs:label  "event offset"^^xsd:string ;
+    rdfs:domain eego:AnnotatedEvent ;
+    rdfs:range  xsd:float ;
+    rdfs:comment "End time of the annotated event in seconds from the beginning of the recording."^^xsd:string .
+
+eego:eventLabel
+    a owl:DatatypeProperty ;
+    rdfs:label  "event label"^^xsd:string ;
+    rdfs:domain eego:AnnotatedEvent ;
+    rdfs:range  xsd:string ;
+    rdfs:comment "Free-text label for the annotated event, e.g. 'Seizure 1' or 'Stimulus A'."^^xsd:string .
+
+eego:scalp2DX
+    a owl:DatatypeProperty ;
+    rdfs:label  "scalp 2-D x coordinate"^^xsd:string ;
+    rdfs:domain eego:Electrode ;
+    rdfs:range  xsd:decimal ;
+    rdfs:comment "Normalised 2-D scalp x coordinate in [-1, 1]. Defined only for standard 10/20 and 10/10 positions."^^xsd:string .
+
+eego:scalp2DY
+    a owl:DatatypeProperty ;
+    rdfs:label  "scalp 2-D y coordinate"^^xsd:string ;
+    rdfs:domain eego:Electrode ;
+    rdfs:range  xsd:decimal ;
+    rdfs:comment "Normalised 2-D scalp y coordinate in [-1, 1]. Defined only for standard 10/20 and 10/10 positions."^^xsd:string .
+
+# ── MeasureScope SKOS scheme ─────────────────────────────────────────────────
+
+eego:MeasureScopeScheme
+    a skos:ConceptScheme ;
+    rdfs:label "EEG measure scope scheme"^^xsd:string ;
+    skos:prefLabel "Measure Scope"@en .
+
+eego:MeasureScope
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Measure scope"^^xsd:string .
+
+eego:Pairwise
+    a owl:NamedIndividual, eego:MeasureScope ;
+    skos:inScheme eego:MeasureScopeScheme ;
+    skos:prefLabel "Pairwise"@en ;
+    skos:notation "Pairwise"^^xsd:string ;
+    skos:definition "The measure operates on a pair of channels and produces one value per pair."@en .
+
+eego:SingleChannel
+    a owl:NamedIndividual, eego:MeasureScope ;
+    skos:inScheme eego:MeasureScopeScheme ;
+    skos:prefLabel "Single channel"@en ;
+    skos:notation "SingleChannel"^^xsd:string ;
+    skos:definition "The measure operates on a single channel and produces one value per channel."@en .
+
+# ── MeasureSymmetry SKOS scheme ───────────────────────────────────────────────
+
+eego:MeasureSymmetryScheme
+    a skos:ConceptScheme ;
+    rdfs:label "EEG measure symmetry scheme"^^xsd:string ;
+    skos:prefLabel "Measure Symmetry"@en .
+
+eego:MeasureSymmetry
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Measure symmetry"^^xsd:string .
+
+eego:Symmetric
+    a owl:NamedIndividual, eego:MeasureSymmetry ;
+    skos:inScheme eego:MeasureSymmetryScheme ;
+    skos:prefLabel "Symmetric"@en ;
+    skos:notation "Symmetric"^^xsd:string ;
+    skos:definition "M(A,B) = M(B,A); the connectivity relationship is undirected."@en .
+
+eego:Asymmetric
+    a owl:NamedIndividual, eego:MeasureSymmetry ;
+    skos:inScheme eego:MeasureSymmetryScheme ;
+    skos:prefLabel "Asymmetric"@en ;
+    skos:notation "Asymmetric"^^xsd:string ;
+    skos:definition "M(A,B) ≠ M(B,A) in general; direction affects the value but is not a causal claim."@en .
+
+eego:Antisymmetric
+    a owl:NamedIndividual, eego:MeasureSymmetry ;
+    skos:inScheme eego:MeasureSymmetryScheme ;
+    skos:prefLabel "Antisymmetric"@en ;
+    skos:notation "Antisymmetric"^^xsd:string ;
+    skos:definition "M(A,B) = −M(B,A); the value changes sign when source and target are swapped."@en .
+
+eego:Directed
+    a owl:NamedIndividual, eego:MeasureSymmetry ;
+    skos:inScheme eego:MeasureSymmetryScheme ;
+    skos:prefLabel "Directed"@en ;
+    skos:notation "Directed"^^xsd:string ;
+    skos:definition "The measure encodes a causal or flow direction from source to target."@en .
+
+# ── ThresholdRule SKOS scheme ─────────────────────────────────────────────────
+
+eego:ThresholdRuleScheme
+    a skos:ConceptScheme ;
+    rdfs:label "EEG threshold rule scheme"^^xsd:string ;
+    skos:prefLabel "Threshold Rule"@en .
+
+eego:ThresholdRule
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Threshold rule"^^xsd:string .
+
+eego:ValueAbove
+    a owl:NamedIndividual, eego:ThresholdRule ;
+    skos:inScheme eego:ThresholdRuleScheme ;
+    skos:prefLabel "Value above"@en ;
+    skos:notation "ValueAbove"^^xsd:string ;
+    skos:definition "Edge kept if value > threshold; signed comparison."@en .
+
+eego:MagnitudeAboveUndirected
+    a owl:NamedIndividual, eego:ThresholdRule ;
+    skos:inScheme eego:ThresholdRuleScheme ;
+    skos:prefLabel "Magnitude above (undirected)"@en ;
+    skos:notation "MagnitudeAboveUndirected"^^xsd:string ;
+    skos:definition "Edge kept if |value| > threshold; stored undirected, direction discarded."@en .
+
+eego:TopFraction
+    a owl:NamedIndividual, eego:ThresholdRule ;
+    skos:inScheme eego:ThresholdRuleScheme ;
+    skos:prefLabel "Top fraction"@en ;
+    skos:notation "TopFraction"^^xsd:string ;
+    skos:definition "Channels in the top fraction of values are selected."@en .
+
+# ── Frequency band SKOS scheme ───────────────────────────────────────────────
+
+eego:FrequencyBand
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Frequency band"^^xsd:string ;
+    rdfs:comment "An EEG frequency band defined by its canonical Hz range."^^xsd:string .
+
+eego:FrequencyBandScheme
+    a skos:ConceptScheme ;
+    rdfs:label "EEG frequency band scheme"^^xsd:string ;
+    skos:prefLabel "EEG Frequency Bands"@en .
+
+eego:Delta
+    a owl:NamedIndividual, eego:FrequencyBand ;
+    skos:inScheme eego:FrequencyBandScheme ;
+    skos:prefLabel "Delta"@en ;
+    skos:notation "delta"^^xsd:string ;
+    skos:definition "0.5–4 Hz. Dominant in deep sleep; elevated in disorders of consciousness."@en .
+
+eego:Theta
+    a owl:NamedIndividual, eego:FrequencyBand ;
+    skos:inScheme eego:FrequencyBandScheme ;
+    skos:prefLabel "Theta"@en ;
+    skos:notation "theta"^^xsd:string ;
+    skos:definition "4–8 Hz. Associated with drowsiness, memory encoding, and hippocampal activity."@en .
+
+eego:Alpha
+    a owl:NamedIndividual, eego:FrequencyBand ;
+    skos:inScheme eego:FrequencyBandScheme ;
+    skos:prefLabel "Alpha"@en ;
+    skos:notation "alpha"^^xsd:string ;
+    skos:definition "8–13 Hz. Prominent during relaxed wakefulness with eyes closed."@en .
+
+eego:Beta
+    a owl:NamedIndividual, eego:FrequencyBand ;
+    skos:inScheme eego:FrequencyBandScheme ;
+    skos:prefLabel "Beta"@en ;
+    skos:notation "beta"^^xsd:string ;
+    skos:definition "13–30 Hz. Associated with active thinking, motor planning, and alertness."@en .
+
+eego:Gamma
+    a owl:NamedIndividual, eego:FrequencyBand ;
+    skos:inScheme eego:FrequencyBandScheme ;
+    skos:prefLabel "Gamma"@en ;
+    skos:notation "gamma"^^xsd:string ;
+    skos:definition "30–100 Hz. Linked to higher cognitive processing and cross-regional binding."@en .
+
+# ── Recording condition SKOS scheme ──────────────────────────────────────────
+
+eego:RecordingCondition
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Recording condition"^^xsd:string ;
+    rdfs:comment "The experimental or clinical state of the subject during EEG acquisition."^^xsd:string .
+
+eego:RecordingConditionScheme
+    a skos:ConceptScheme ;
+    rdfs:label "EEG recording condition scheme"^^xsd:string ;
+    skos:prefLabel "EEG Recording Conditions"@en .
+
+eego:RestingState
+    a owl:NamedIndividual, eego:RecordingCondition ;
+    skos:inScheme eego:RecordingConditionScheme ;
+    skos:prefLabel "Resting state"@en ;
+    skos:notation "resting_state"^^xsd:string ;
+    skos:definition "Subject is at rest with no explicit task; eyes open or closed."@en .
+
+eego:TaskRelated
+    a owl:NamedIndividual, eego:RecordingCondition ;
+    skos:inScheme eego:RecordingConditionScheme ;
+    skos:prefLabel "Task-related"@en ;
+    skos:notation "task_related"^^xsd:string ;
+    skos:definition "Subject is performing a defined cognitive, motor, or sensory task."@en .
+
+eego:PathologicalActivity
+    a owl:NamedIndividual, eego:RecordingCondition ;
+    skos:inScheme eego:RecordingConditionScheme ;
+    skos:prefLabel "Pathological activity"@en ;
+    skos:notation "pathological_activity"^^xsd:string ;
+    skos:definition "Recording shows abnormal brain activity indicative of a neurological condition (e.g. seizure, epileptiform discharge, tumour-related activity). Condition type is expressed via eego:AnnotatedEvent."@en .
+
+eego:AlteredConsciousness
+    a owl:NamedIndividual, eego:RecordingCondition ;
+    skos:inScheme eego:RecordingConditionScheme ;
+    skos:prefLabel "Altered consciousness"@en ;
+    skos:notation "altered_consciousness"^^xsd:string ;
+    skos:definition "Subject is in a state of reduced or modified wakefulness, including sleep, pharmacological sedation, anaesthesia, or a disorder of consciousness. Specific state expressed via eego:AnnotatedEvent."@en .
+
+# ── Event type SKOS scheme ────────────────────────────────────────────────────
+
+# No built-in EventType individuals are defined here.
+# The EventType class and hasEventType property provide the structural hook;
+# domain-specific vocabularies (e.g. SNOMED CT, HED, a custom SKOS scheme)
+# supply the actual terms. Pass either a full URI or a plain string label
+# via the pipeline's annotations parameter.
+
+# ── Connectivity measure individuals ─────────────────────────────────────────
+
+eego:PearsonCorrelation
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Pearson correlation"@en ;
+    skos:notation "pearson_correlation"^^xsd:string ;
+    skos:closeMatch <http://purl.obolibrary.org/obo/STATO_0000280> ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Symmetric ;
+    eego:bandResolved false ;
+    eego:minValue "-1.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.7"^^xsd:decimal .
+
+eego:CrossCorrelation
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Cross-correlation"@en ;
+    skos:notation "cross_correlation"^^xsd:string ;
+    skos:relatedMatch <http://purl.obolibrary.org/obo/STATO_0000280> ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Asymmetric ;
+    eego:bandResolved false ;
+    eego:minValue "-1.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.5"^^xsd:decimal .
+
+eego:CrossCorrelationAsymmetry
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Cross-correlation asymmetry"@en ;
+    skos:notation "corr_cross_correlation"^^xsd:string ;
+    skos:note "Computes R_xy(τ) − R_xy(−τ) on the normalised cross-correlation, averaged over short positive lags (0–10 % of window). Antisymmetric by construction: CCA(A→B) = −CCA(B→A). See: Wendling et al. (2009) and related directed cross-correlation literature."@en ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Antisymmetric ;
+    eego:bandResolved false ;
+    eego:minValue "-2.0"^^xsd:decimal ;
+    eego:maxValue "2.0"^^xsd:decimal ;
+    eego:threshold "0.1"^^xsd:decimal .
+
+eego:SquaredCoherence
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Squared coherence"@en ;
+    skos:notation "squared_coherence"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Symmetric ;
+    eego:bandResolved true ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.65"^^xsd:decimal .
+
+eego:ImaginaryCoherence
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Imaginary coherence"@en ;
+    skos:notation "imag_coherence"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Antisymmetric ;
+    eego:bandResolved true ;
+    eego:minValue "-1.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.4"^^xsd:decimal .
+
+eego:WPLI
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Weighted phase lag index"@en ;
+    skos:notation "wpli"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Symmetric ;
+    eego:bandResolved true ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.45"^^xsd:decimal .
+
+eego:PLV
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Phase locking value"@en ;
+    skos:notation "plv"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Symmetric ;
+    eego:bandResolved true ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.8"^^xsd:decimal .
+    # TODO: skos:closeMatch to STATO/OBI term
+
+eego:PLI
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Phase lag index"@en ;
+    skos:notation "pli"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Symmetric ;
+    eego:bandResolved false ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.1"^^xsd:decimal .
+    # TODO: skos:closeMatch to STATO/OBI term
+
+
+eego:DTF
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Directed transfer function"@en ;
+    skos:notation "dtf"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Directed ;
+    eego:bandResolved true ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.3"^^xsd:decimal .
+    # TODO: skos:closeMatch to STATO/OBI term
+
+eego:GrangerCausality
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Granger causality"@en ;
+    skos:notation "granger_causality"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Directed ;
+    eego:bandResolved false ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.1"^^xsd:decimal .
+
+eego:PowerSpectrum
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Power spectrum"@en ;
+    skos:notation "power_spectrum"^^xsd:string ;
+    eego:scope eego:SingleChannel ;
+    eego:bandResolved true ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:threshold "0.25"^^xsd:decimal .
+    # TODO: skos:closeMatch to STATO/OBI term
+
+eego:SpectralEntropy
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Spectral entropy"@en ;
+    skos:notation "spectral_entropy"^^xsd:string ;
+    eego:scope eego:SingleChannel ;
+    eego:bandResolved true ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.25"^^xsd:decimal .
+    # TODO: skos:closeMatch to STATO/OBI term
+
+eego:ShannonEntropy
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Shannon entropy"@en ;
+    skos:notation "shannon_entropy"^^xsd:string ;
+    eego:scope eego:SingleChannel ;
+    eego:bandResolved false ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:threshold "0.25"^^xsd:decimal .
+    # TODO: skos:closeMatch to STATO/OBI term
+
+# ── Additional measures (feature/graph-metrics branch) ───────────────────────
+
+eego:AEC
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Amplitude envelope correlation"@en ;
+    skos:notation "aec"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Symmetric ;
+    eego:bandResolved false ;
+    eego:minValue "-1.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.7"^^xsd:decimal .
+
+eego:AECOrth
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Orthogonalised amplitude envelope correlation"@en ;
+    skos:notation "aec_orth"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Symmetric ;
+    eego:bandResolved false ;
+    eego:minValue "-1.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.7"^^xsd:decimal .
+
+eego:MutualInformation
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Mutual information"@en ;
+    skos:notation "mutual_information"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Symmetric ;
+    eego:bandResolved false ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:threshold "0.1"^^xsd:decimal .
+
+eego:SyncLikelihood
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Synchronisation likelihood"@en ;
+    skos:notation "sync_likelihood"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Symmetric ;
+    eego:bandResolved false ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.05"^^xsd:decimal .
+
+eego:DWPLI
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Debiased weighted phase lag index"@en ;
+    skos:notation "dwpli"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Symmetric ;
+    eego:bandResolved true ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.5"^^xsd:decimal .
+
+eego:PPC
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Pairwise phase consistency"@en ;
+    skos:notation "ppc"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Symmetric ;
+    eego:bandResolved true ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.5"^^xsd:decimal .
+
+eego:LaggedCoherence
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Lagged coherence"@en ;
+    skos:notation "lagged_coherence"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Symmetric ;
+    eego:bandResolved true ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.5"^^xsd:decimal .
+
+eego:TransferEntropy
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Transfer entropy"@en ;
+    skos:notation "transfer_entropy"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Directed ;
+    eego:bandResolved false ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:threshold "0.05"^^xsd:decimal .
+
+eego:PDC
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Partial directed coherence"@en ;
+    skos:notation "pdc"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Directed ;
+    eego:bandResolved true ;
+    eego:minValue "0.0"^^xsd:decimal ;
+    eego:maxValue "1.0"^^xsd:decimal ;
+    eego:threshold "0.3"^^xsd:decimal .
+
+eego:PSI
+    a owl:NamedIndividual, eego:ConnectivityMeasure ;
+    skos:prefLabel "Phase slope index"@en ;
+    skos:notation "psi"^^xsd:string ;
+    eego:scope eego:Pairwise ;
+    eego:symmetry eego:Directed ;
+    eego:bandResolved true ;
+    eego:threshold "0.0"^^xsd:decimal .
+
+# ── Electrode position individuals (10/20, 10/10, 10/5 systems) ──────────────
+# Source: Jurcak V, Tsuzuki D, Dan I (2007) 10/20, 10/10, and 10/5 systems
+#   revisited. Clin Neurophysiol 118(11):2154-2170.
+#   https://doi.org/10.1016/j.clinph.2007.04.223
+# 2-D coordinates: azimuthal equidistant projection centred at Cz,
+#   derived from MNE-Python standard_1005 montage (3-D positions),
+#   scaled so T7/T8 are at x=±0.80.
+
+eego:Electrode_A1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "A1"^^xsd:string ;
+    skos:notation "A1"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "-0.9826"^^xsd:decimal ;
+    eego:scalp2DY "-0.1331"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_A2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "A2"^^xsd:string ;
+    skos:notation "A2"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "0.9893"^^xsd:decimal ;
+    eego:scalp2DY "-0.1355"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_AF1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF1"^^xsd:string ;
+    skos:notation "AF1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1165"^^xsd:decimal ;
+    eego:scalp2DY "0.5553"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF10
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF10"^^xsd:string ;
+    skos:notation "AF10"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4839"^^xsd:decimal ;
+    eego:scalp2DY "0.742"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF10H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF10H"^^xsd:string ;
+    skos:notation "AF10h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4687"^^xsd:decimal ;
+    eego:scalp2DY "0.6722"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF1H"^^xsd:string ;
+    skos:notation "AF1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0587"^^xsd:decimal ;
+    eego:scalp2DY "0.5535"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF2"^^xsd:string ;
+    skos:notation "AF2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1189"^^xsd:decimal ;
+    eego:scalp2DY "0.5556"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF2H"^^xsd:string ;
+    skos:notation "AF2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.061"^^xsd:decimal ;
+    eego:scalp2DY "0.5528"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF3"^^xsd:string ;
+    skos:notation "AF3"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2245"^^xsd:decimal ;
+    eego:scalp2DY "0.5753"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF3H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF3H"^^xsd:string ;
+    skos:notation "AF3h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.174"^^xsd:decimal ;
+    eego:scalp2DY "0.5604"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF4"^^xsd:string ;
+    skos:notation "AF4"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2283"^^xsd:decimal ;
+    eego:scalp2DY "0.5718"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF4H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF4H"^^xsd:string ;
+    skos:notation "AF4h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1759"^^xsd:decimal ;
+    eego:scalp2DY "0.5605"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF5"^^xsd:string ;
+    skos:notation "AF5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.327"^^xsd:decimal ;
+    eego:scalp2DY "0.5986"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF5H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF5H"^^xsd:string ;
+    skos:notation "AF5h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2752"^^xsd:decimal ;
+    eego:scalp2DY "0.5887"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF6"^^xsd:string ;
+    skos:notation "AF6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.3258"^^xsd:decimal ;
+    eego:scalp2DY "0.6"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF6H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF6H"^^xsd:string ;
+    skos:notation "AF6h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2752"^^xsd:decimal ;
+    eego:scalp2DY "0.5889"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF7
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF7"^^xsd:string ;
+    skos:notation "AF7"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4249"^^xsd:decimal ;
+    eego:scalp2DY "0.6154"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF7H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF7H"^^xsd:string ;
+    skos:notation "AF7h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3796"^^xsd:decimal ;
+    eego:scalp2DY "0.6038"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF8
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF8"^^xsd:string ;
+    skos:notation "AF8"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4215"^^xsd:decimal ;
+    eego:scalp2DY "0.6193"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF8H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF8H"^^xsd:string ;
+    skos:notation "AF8h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.3766"^^xsd:decimal ;
+    eego:scalp2DY "0.6074"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF9
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF9"^^xsd:string ;
+    skos:notation "AF9"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4787"^^xsd:decimal ;
+    eego:scalp2DY "0.742"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AF9H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AF9H"^^xsd:string ;
+    skos:notation "AF9h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4715"^^xsd:decimal ;
+    eego:scalp2DY "0.6688"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF1"^^xsd:string ;
+    skos:notation "AFF1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1435"^^xsd:decimal ;
+    eego:scalp2DY "0.478"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF10
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF10"^^xsd:string ;
+    skos:notation "AFF10"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.6104"^^xsd:decimal ;
+    eego:scalp2DY "0.6616"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF10H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF10H"^^xsd:string ;
+    skos:notation "AFF10h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.5754"^^xsd:decimal ;
+    eego:scalp2DY "0.6035"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF1H"^^xsd:string ;
+    skos:notation "AFF1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0702"^^xsd:decimal ;
+    eego:scalp2DY "0.4777"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF2"^^xsd:string ;
+    skos:notation "AFF2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1485"^^xsd:decimal ;
+    eego:scalp2DY "0.476"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF2H"^^xsd:string ;
+    skos:notation "AFF2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.0763"^^xsd:decimal ;
+    eego:scalp2DY "0.4745"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF3"^^xsd:string ;
+    skos:notation "AFF3"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2816"^^xsd:decimal ;
+    eego:scalp2DY "0.494"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF3H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF3H"^^xsd:string ;
+    skos:notation "AFF3h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2138"^^xsd:decimal ;
+    eego:scalp2DY "0.4839"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF4"^^xsd:string ;
+    skos:notation "AFF4"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2846"^^xsd:decimal ;
+    eego:scalp2DY "0.495"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF4H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF4H"^^xsd:string ;
+    skos:notation "AFF4h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.218"^^xsd:decimal ;
+    eego:scalp2DY "0.484"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF5"^^xsd:string ;
+    skos:notation "AFF5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4061"^^xsd:decimal ;
+    eego:scalp2DY "0.5239"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF5H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF5H"^^xsd:string ;
+    skos:notation "AFF5h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3464"^^xsd:decimal ;
+    eego:scalp2DY "0.506"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF6"^^xsd:string ;
+    skos:notation "AFF6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4084"^^xsd:decimal ;
+    eego:scalp2DY "0.5235"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF6H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF6H"^^xsd:string ;
+    skos:notation "AFF6h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.3479"^^xsd:decimal ;
+    eego:scalp2DY "0.5082"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF7
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF7"^^xsd:string ;
+    skos:notation "AFF7"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.5201"^^xsd:decimal ;
+    eego:scalp2DY "0.5536"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF7H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF7H"^^xsd:string ;
+    skos:notation "AFF7h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4687"^^xsd:decimal ;
+    eego:scalp2DY "0.5328"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF8
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF8"^^xsd:string ;
+    skos:notation "AFF8"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.518"^^xsd:decimal ;
+    eego:scalp2DY "0.5577"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF8H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF8H"^^xsd:string ;
+    skos:notation "AFF8h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4681"^^xsd:decimal ;
+    eego:scalp2DY "0.5359"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF9
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF9"^^xsd:string ;
+    skos:notation "AFF9"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.6049"^^xsd:decimal ;
+    eego:scalp2DY "0.6617"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFF9H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFF9H"^^xsd:string ;
+    skos:notation "AFF9h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.5773"^^xsd:decimal ;
+    eego:scalp2DY "0.5995"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFFZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFFZ"^^xsd:string ;
+    skos:notation "AFFz"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0009"^^xsd:decimal ;
+    eego:scalp2DY "0.4748"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP1"^^xsd:string ;
+    skos:notation "AFp1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0837"^^xsd:decimal ;
+    eego:scalp2DY "0.6384"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP10
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP10"^^xsd:string ;
+    skos:notation "AFp10"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.3514"^^xsd:decimal ;
+    eego:scalp2DY "0.8004"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP10H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP10H"^^xsd:string ;
+    skos:notation "AFp10h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.3552"^^xsd:decimal ;
+    eego:scalp2DY "0.7251"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP1H"^^xsd:string ;
+    skos:notation "AFp1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0415"^^xsd:decimal ;
+    eego:scalp2DY "0.6343"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP2"^^xsd:string ;
+    skos:notation "AFp2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.0857"^^xsd:decimal ;
+    eego:scalp2DY "0.6339"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP2H"^^xsd:string ;
+    skos:notation "AFp2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.0431"^^xsd:decimal ;
+    eego:scalp2DY "0.6332"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP3"^^xsd:string ;
+    skos:notation "AFp3"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1588"^^xsd:decimal ;
+    eego:scalp2DY "0.6583"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP3H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP3H"^^xsd:string ;
+    skos:notation "AFp3h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1199"^^xsd:decimal ;
+    eego:scalp2DY "0.65"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP4"^^xsd:string ;
+    skos:notation "AFp4"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1618"^^xsd:decimal ;
+    eego:scalp2DY "0.6523"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP4H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP4H"^^xsd:string ;
+    skos:notation "AFp4h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1233"^^xsd:decimal ;
+    eego:scalp2DY "0.6438"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP5"^^xsd:string ;
+    skos:notation "AFp5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2423"^^xsd:decimal ;
+    eego:scalp2DY "0.6631"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP5H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP5H"^^xsd:string ;
+    skos:notation "AFp5h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.201"^^xsd:decimal ;
+    eego:scalp2DY "0.6609"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP6"^^xsd:string ;
+    skos:notation "AFp6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.239"^^xsd:decimal ;
+    eego:scalp2DY "0.6645"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP6H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP6H"^^xsd:string ;
+    skos:notation "AFp6h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1982"^^xsd:decimal ;
+    eego:scalp2DY "0.6618"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP7
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP7"^^xsd:string ;
+    skos:notation "AFp7"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3237"^^xsd:decimal ;
+    eego:scalp2DY "0.6616"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP7H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP7H"^^xsd:string ;
+    skos:notation "AFp7h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2835"^^xsd:decimal ;
+    eego:scalp2DY "0.6626"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP8
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP8"^^xsd:string ;
+    skos:notation "AFp8"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.319"^^xsd:decimal ;
+    eego:scalp2DY "0.665"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP8H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP8H"^^xsd:string ;
+    skos:notation "AFp8h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2804"^^xsd:decimal ;
+    eego:scalp2DY "0.6635"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP9
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP9"^^xsd:string ;
+    skos:notation "AFp9"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3454"^^xsd:decimal ;
+    eego:scalp2DY "0.8003"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFP9H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFP9H"^^xsd:string ;
+    skos:notation "AFp9h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3601"^^xsd:decimal ;
+    eego:scalp2DY "0.7216"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFPZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFPZ"^^xsd:string ;
+    skos:notation "AFpz"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0018"^^xsd:decimal ;
+    eego:scalp2DY "0.6306"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_AFZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "AFZ"^^xsd:string ;
+    skos:notation "AFz"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0013"^^xsd:decimal ;
+    eego:scalp2DY "0.5552"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_C1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "C1"^^xsd:string ;
+    skos:notation "C1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2039"^^xsd:decimal ;
+    eego:scalp2DY "-0.0022"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_C1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "C1H"^^xsd:string ;
+    skos:notation "C1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1001"^^xsd:decimal ;
+    eego:scalp2DY "-0.0007"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_C2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "C2"^^xsd:string ;
+    skos:notation "C2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2109"^^xsd:decimal ;
+    eego:scalp2DY "0.0004"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_C2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "C2H"^^xsd:string ;
+    skos:notation "C2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1054"^^xsd:decimal ;
+    eego:scalp2DY "0.0008"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_C3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "C3"^^xsd:string ;
+    skos:notation "C3"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "-0.412"^^xsd:decimal ;
+    eego:scalp2DY "-0.0078"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_C3H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "C3H"^^xsd:string ;
+    skos:notation "C3h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3083"^^xsd:decimal ;
+    eego:scalp2DY "-0.0044"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_C4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "C4"^^xsd:string ;
+    skos:notation "C4"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "0.4193"^^xsd:decimal ;
+    eego:scalp2DY "-0.0031"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_C4H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "C4H"^^xsd:string ;
+    skos:notation "C4h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.3156"^^xsd:decimal ;
+    eego:scalp2DY "-0.0008"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_C5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "C5"^^xsd:string ;
+    skos:notation "C5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.613"^^xsd:decimal ;
+    eego:scalp2DY "-0.0171"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_C5H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "C5H"^^xsd:string ;
+    skos:notation "C5h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.5127"^^xsd:decimal ;
+    eego:scalp2DY "-0.012"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_C6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "C6"^^xsd:string ;
+    skos:notation "C6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.6163"^^xsd:decimal ;
+    eego:scalp2DY "-0.0103"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_C6H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "C6H"^^xsd:string ;
+    skos:notation "C6h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.5181"^^xsd:decimal ;
+    eego:scalp2DY "-0.0064"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CCP1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CCP1"^^xsd:string ;
+    skos:notation "CCP1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2016"^^xsd:decimal ;
+    eego:scalp2DY "-0.1037"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CCP1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CCP1H"^^xsd:string ;
+    skos:notation "CCP1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.099"^^xsd:decimal ;
+    eego:scalp2DY "-0.101"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CCP2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CCP2"^^xsd:string ;
+    skos:notation "CCP2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2076"^^xsd:decimal ;
+    eego:scalp2DY "-0.1024"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CCP2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CCP2H"^^xsd:string ;
+    skos:notation "CCP2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1046"^^xsd:decimal ;
+    eego:scalp2DY "-0.1001"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CCP3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CCP3"^^xsd:string ;
+    skos:notation "CCP3"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4045"^^xsd:decimal ;
+    eego:scalp2DY "-0.1161"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CCP3H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CCP3H"^^xsd:string ;
+    skos:notation "CCP3h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3036"^^xsd:decimal ;
+    eego:scalp2DY "-0.1091"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CCP4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CCP4"^^xsd:string ;
+    skos:notation "CCP4"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4096"^^xsd:decimal ;
+    eego:scalp2DY "-0.1111"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CCP4H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CCP4H"^^xsd:string ;
+    skos:notation "CCP4h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.3094"^^xsd:decimal ;
+    eego:scalp2DY "-0.1057"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CCP5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CCP5"^^xsd:string ;
+    skos:notation "CCP5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.6011"^^xsd:decimal ;
+    eego:scalp2DY "-0.1382"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CCP5H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CCP5H"^^xsd:string ;
+    skos:notation "CCP5h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.5036"^^xsd:decimal ;
+    eego:scalp2DY "-0.1249"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CCP6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CCP6"^^xsd:string ;
+    skos:notation "CCP6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.6031"^^xsd:decimal ;
+    eego:scalp2DY "-0.1304"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CCP6H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CCP6H"^^xsd:string ;
+    skos:notation "CCP6h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.5074"^^xsd:decimal ;
+    eego:scalp2DY "-0.1189"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CCPZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CCPZ"^^xsd:string ;
+    skos:notation "CCPz"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0"^^xsd:decimal ;
+    eego:scalp2DY "-0.0991"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CP1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CP1"^^xsd:string ;
+    skos:notation "CP1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1881"^^xsd:decimal ;
+    eego:scalp2DY "-0.1999"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CP1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CP1H"^^xsd:string ;
+    skos:notation "CP1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.091"^^xsd:decimal ;
+    eego:scalp2DY "-0.1968"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CP2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CP2"^^xsd:string ;
+    skos:notation "CP2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1994"^^xsd:decimal ;
+    eego:scalp2DY "-0.1991"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CP2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CP2H"^^xsd:string ;
+    skos:notation "CP2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1029"^^xsd:decimal ;
+    eego:scalp2DY "-0.1946"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CP3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CP3"^^xsd:string ;
+    skos:notation "CP3"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3807"^^xsd:decimal ;
+    eego:scalp2DY "-0.2199"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CP3H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CP3H"^^xsd:string ;
+    skos:notation "CP3h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2849"^^xsd:decimal ;
+    eego:scalp2DY "-0.2083"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CP4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CP4"^^xsd:string ;
+    skos:notation "CP4"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.3897"^^xsd:decimal ;
+    eego:scalp2DY "-0.2159"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CP4H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CP4H"^^xsd:string ;
+    skos:notation "CP4h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2942"^^xsd:decimal ;
+    eego:scalp2DY "-0.2054"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CP5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CP5"^^xsd:string ;
+    skos:notation "CP5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.5691"^^xsd:decimal ;
+    eego:scalp2DY "-0.2517"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CP5H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CP5H"^^xsd:string ;
+    skos:notation "CP5h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4762"^^xsd:decimal ;
+    eego:scalp2DY "-0.2338"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CP6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CP6"^^xsd:string ;
+    skos:notation "CP6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.5749"^^xsd:decimal ;
+    eego:scalp2DY "-0.2435"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CP6H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CP6H"^^xsd:string ;
+    skos:notation "CP6h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4839"^^xsd:decimal ;
+    eego:scalp2DY "-0.2283"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CPP1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CPP1"^^xsd:string ;
+    skos:notation "CPP1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1733"^^xsd:decimal ;
+    eego:scalp2DY "-0.2941"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CPP1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CPP1H"^^xsd:string ;
+    skos:notation "CPP1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0834"^^xsd:decimal ;
+    eego:scalp2DY "-0.2912"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CPP2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CPP2"^^xsd:string ;
+    skos:notation "CPP2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1847"^^xsd:decimal ;
+    eego:scalp2DY "-0.2918"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CPP2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CPP2H"^^xsd:string ;
+    skos:notation "CPP2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.0963"^^xsd:decimal ;
+    eego:scalp2DY "-0.287"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CPP3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CPP3"^^xsd:string ;
+    skos:notation "CPP3"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3512"^^xsd:decimal ;
+    eego:scalp2DY "-0.3167"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CPP3H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CPP3H"^^xsd:string ;
+    skos:notation "CPP3h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.262"^^xsd:decimal ;
+    eego:scalp2DY "-0.3053"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CPP4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CPP4"^^xsd:string ;
+    skos:notation "CPP4"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.3598"^^xsd:decimal ;
+    eego:scalp2DY "-0.3126"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CPP4H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CPP4H"^^xsd:string ;
+    skos:notation "CPP4h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2731"^^xsd:decimal ;
+    eego:scalp2DY "-0.2993"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CPP5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CPP5"^^xsd:string ;
+    skos:notation "CPP5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.5216"^^xsd:decimal ;
+    eego:scalp2DY "-0.3577"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CPP5H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CPP5H"^^xsd:string ;
+    skos:notation "CPP5h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4375"^^xsd:decimal ;
+    eego:scalp2DY "-0.3348"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CPP6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CPP6"^^xsd:string ;
+    skos:notation "CPP6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.5286"^^xsd:decimal ;
+    eego:scalp2DY "-0.3506"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CPP6H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CPP6H"^^xsd:string ;
+    skos:notation "CPP6h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4456"^^xsd:decimal ;
+    eego:scalp2DY "-0.3292"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CPPZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CPPZ"^^xsd:string ;
+    skos:notation "CPPz"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0001"^^xsd:decimal ;
+    eego:scalp2DY "-0.2872"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CPZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CPZ"^^xsd:string ;
+    skos:notation "CPz"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0"^^xsd:decimal ;
+    eego:scalp2DY "-0.1955"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_CZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "CZ"^^xsd:string ;
+    skos:notation "Cz"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "0.0"^^xsd:decimal ;
+    eego:scalp2DY "0.0"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_F1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F1"^^xsd:string ;
+    skos:notation "F1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.164"^^xsd:decimal ;
+    eego:scalp2DY "0.3929"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_F10
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F10"^^xsd:string ;
+    skos:notation "F10"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.7197"^^xsd:decimal ;
+    eego:scalp2DY "0.5517"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_F10H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F10H"^^xsd:string ;
+    skos:notation "F10h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.6761"^^xsd:decimal ;
+    eego:scalp2DY "0.5082"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_F1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F1H"^^xsd:string ;
+    skos:notation "F1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.08"^^xsd:decimal ;
+    eego:scalp2DY "0.3925"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_F2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F2"^^xsd:string ;
+    skos:notation "F2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1709"^^xsd:decimal ;
+    eego:scalp2DY "0.3969"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_F2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F2H"^^xsd:string ;
+    skos:notation "F2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.0882"^^xsd:decimal ;
+    eego:scalp2DY "0.3905"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_F3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F3"^^xsd:string ;
+    skos:notation "F3"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "-0.3261"^^xsd:decimal ;
+    eego:scalp2DY "0.4095"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_F3H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F3H"^^xsd:string ;
+    skos:notation "F3h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2464"^^xsd:decimal ;
+    eego:scalp2DY "0.3991"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_F4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F4"^^xsd:string ;
+    skos:notation "F4"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "0.3308"^^xsd:decimal ;
+    eego:scalp2DY "0.4175"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_F4H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F4H"^^xsd:string ;
+    skos:notation "F4h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2522"^^xsd:decimal ;
+    eego:scalp2DY "0.4051"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_F5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F5"^^xsd:string ;
+    skos:notation "F5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4771"^^xsd:decimal ;
+    eego:scalp2DY "0.4361"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_F5H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F5H"^^xsd:string ;
+    skos:notation "F5h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4034"^^xsd:decimal ;
+    eego:scalp2DY "0.4215"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_F6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F6"^^xsd:string ;
+    skos:notation "F6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4824"^^xsd:decimal ;
+    eego:scalp2DY "0.4364"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_F6H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F6H"^^xsd:string ;
+    skos:notation "F6h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4072"^^xsd:decimal ;
+    eego:scalp2DY "0.4305"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_F7
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F7"^^xsd:string ;
+    skos:notation "F7"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "-0.6104"^^xsd:decimal ;
+    eego:scalp2DY "0.4711"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_F7H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F7H"^^xsd:string ;
+    skos:notation "F7h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.5468"^^xsd:decimal ;
+    eego:scalp2DY "0.4515"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_F8
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F8"^^xsd:string ;
+    skos:notation "F8"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "0.6095"^^xsd:decimal ;
+    eego:scalp2DY "0.4742"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_F8H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F8H"^^xsd:string ;
+    skos:notation "F8h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.5494"^^xsd:decimal ;
+    eego:scalp2DY "0.4517"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_F9
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F9"^^xsd:string ;
+    skos:notation "F9"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.7164"^^xsd:decimal ;
+    eego:scalp2DY "0.5526"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_F9H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "F9H"^^xsd:string ;
+    skos:notation "F9h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.6768"^^xsd:decimal ;
+    eego:scalp2DY "0.504"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FC1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FC1"^^xsd:string ;
+    skos:notation "FC1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1967"^^xsd:decimal ;
+    eego:scalp2DY "0.204"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FC1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FC1H"^^xsd:string ;
+    skos:notation "FC1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0977"^^xsd:decimal ;
+    eego:scalp2DY "0.201"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FC2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FC2"^^xsd:string ;
+    skos:notation "FC2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1987"^^xsd:decimal ;
+    eego:scalp2DY "0.2099"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FC2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FC2H"^^xsd:string ;
+    skos:notation "FC2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.0996"^^xsd:decimal ;
+    eego:scalp2DY "0.2036"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FC3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FC3"^^xsd:string ;
+    skos:notation "FC3"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3938"^^xsd:decimal ;
+    eego:scalp2DY "0.2164"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FC3H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FC3H"^^xsd:string ;
+    skos:notation "FC3h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2958"^^xsd:decimal ;
+    eego:scalp2DY "0.2095"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FC4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FC4"^^xsd:string ;
+    skos:notation "FC4"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.397"^^xsd:decimal ;
+    eego:scalp2DY "0.22"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FC4H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FC4H"^^xsd:string ;
+    skos:notation "FC4h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2985"^^xsd:decimal ;
+    eego:scalp2DY "0.2153"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FC5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FC5"^^xsd:string ;
+    skos:notation "FC5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.581"^^xsd:decimal ;
+    eego:scalp2DY "0.2248"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FC5H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FC5H"^^xsd:string ;
+    skos:notation "FC5h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4897"^^xsd:decimal ;
+    eego:scalp2DY "0.2168"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FC6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FC6"^^xsd:string ;
+    skos:notation "FC6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.5818"^^xsd:decimal ;
+    eego:scalp2DY "0.2302"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FC6H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FC6H"^^xsd:string ;
+    skos:notation "FC6h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4915"^^xsd:decimal ;
+    eego:scalp2DY "0.222"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FCC1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FCC1"^^xsd:string ;
+    skos:notation "FCC1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2058"^^xsd:decimal ;
+    eego:scalp2DY "0.1027"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FCC1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FCC1H"^^xsd:string ;
+    skos:notation "FCC1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1025"^^xsd:decimal ;
+    eego:scalp2DY "0.1023"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FCC2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FCC2"^^xsd:string ;
+    skos:notation "FCC2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2076"^^xsd:decimal ;
+    eego:scalp2DY "0.108"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FCC2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FCC2H"^^xsd:string ;
+    skos:notation "FCC2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1024"^^xsd:decimal ;
+    eego:scalp2DY "0.105"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FCC3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FCC3"^^xsd:string ;
+    skos:notation "FCC3"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4112"^^xsd:decimal ;
+    eego:scalp2DY "0.1038"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FCC3H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FCC3H"^^xsd:string ;
+    skos:notation "FCC3h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3093"^^xsd:decimal ;
+    eego:scalp2DY "0.1038"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FCC4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FCC4"^^xsd:string ;
+    skos:notation "FCC4"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4157"^^xsd:decimal ;
+    eego:scalp2DY "0.1102"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FCC4H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FCC4H"^^xsd:string ;
+    skos:notation "FCC4h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.3126"^^xsd:decimal ;
+    eego:scalp2DY "0.1093"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FCC5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FCC5"^^xsd:string ;
+    skos:notation "FCC5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.6065"^^xsd:decimal ;
+    eego:scalp2DY "0.1056"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FCC5H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FCC5H"^^xsd:string ;
+    skos:notation "FCC5h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.51"^^xsd:decimal ;
+    eego:scalp2DY "0.103"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FCC6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FCC6"^^xsd:string ;
+    skos:notation "FCC6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.6082"^^xsd:decimal ;
+    eego:scalp2DY "0.1133"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FCC6H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FCC6H"^^xsd:string ;
+    skos:notation "FCC6h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.513"^^xsd:decimal ;
+    eego:scalp2DY "0.1082"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FCCZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FCCZ"^^xsd:string ;
+    skos:notation "FCCz"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0001"^^xsd:decimal ;
+    eego:scalp2DY "0.1018"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FCZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FCZ"^^xsd:string ;
+    skos:notation "FCz"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0002"^^xsd:decimal ;
+    eego:scalp2DY "0.2019"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFC1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFC1"^^xsd:string ;
+    skos:notation "FFC1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1804"^^xsd:decimal ;
+    eego:scalp2DY "0.3035"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFC1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFC1H"^^xsd:string ;
+    skos:notation "FFC1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0884"^^xsd:decimal ;
+    eego:scalp2DY "0.2973"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFC2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFC2"^^xsd:string ;
+    skos:notation "FFC2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1862"^^xsd:decimal ;
+    eego:scalp2DY "0.306"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFC2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFC2H"^^xsd:string ;
+    skos:notation "FFC2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.0954"^^xsd:decimal ;
+    eego:scalp2DY "0.2978"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFC3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFC3"^^xsd:string ;
+    skos:notation "FFC3"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3637"^^xsd:decimal ;
+    eego:scalp2DY "0.3178"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFC3H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFC3H"^^xsd:string ;
+    skos:notation "FFC3h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2728"^^xsd:decimal ;
+    eego:scalp2DY "0.3099"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFC4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFC4"^^xsd:string ;
+    skos:notation "FFC4"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.3679"^^xsd:decimal ;
+    eego:scalp2DY "0.3251"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFC4H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFC4H"^^xsd:string ;
+    skos:notation "FFC4h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2773"^^xsd:decimal ;
+    eego:scalp2DY "0.3166"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFC5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFC5"^^xsd:string ;
+    skos:notation "FFC5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.5359"^^xsd:decimal ;
+    eego:scalp2DY "0.3374"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFC5H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFC5H"^^xsd:string ;
+    skos:notation "FFC5h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4521"^^xsd:decimal ;
+    eego:scalp2DY "0.326"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFC6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFC6"^^xsd:string ;
+    skos:notation "FFC6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.5391"^^xsd:decimal ;
+    eego:scalp2DY "0.342"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFC6H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFC6H"^^xsd:string ;
+    skos:notation "FFC6h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4558"^^xsd:decimal ;
+    eego:scalp2DY "0.3331"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFCZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFCZ"^^xsd:string ;
+    skos:notation "FFCz"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0004"^^xsd:decimal ;
+    eego:scalp2DY "0.298"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFT10
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFT10"^^xsd:string ;
+    skos:notation "FFT10"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.8107"^^xsd:decimal ;
+    eego:scalp2DY "0.4269"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFT10H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFT10H"^^xsd:string ;
+    skos:notation "FFT10h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.7601"^^xsd:decimal ;
+    eego:scalp2DY "0.3927"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFT7
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFT7"^^xsd:string ;
+    skos:notation "FFT7"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.6897"^^xsd:decimal ;
+    eego:scalp2DY "0.3662"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFT7H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFT7H"^^xsd:string ;
+    skos:notation "FFT7h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.6147"^^xsd:decimal ;
+    eego:scalp2DY "0.354"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFT8
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFT8"^^xsd:string ;
+    skos:notation "FFT8"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.6879"^^xsd:decimal ;
+    eego:scalp2DY "0.3728"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFT8H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFT8H"^^xsd:string ;
+    skos:notation "FFT8h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.6161"^^xsd:decimal ;
+    eego:scalp2DY "0.3552"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFT9
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFT9"^^xsd:string ;
+    skos:notation "FFT9"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.8076"^^xsd:decimal ;
+    eego:scalp2DY "0.4256"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FFT9H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FFT9H"^^xsd:string ;
+    skos:notation "FFT9h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.7593"^^xsd:decimal ;
+    eego:scalp2DY "0.388"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FP1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FP1"^^xsd:string ;
+    skos:notation "Fp1"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "-0.2177"^^xsd:decimal ;
+    eego:scalp2DY "0.6929"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_FP1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FP1H"^^xsd:string ;
+    skos:notation "Fp1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1098"^^xsd:decimal ;
+    eego:scalp2DY "0.7073"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FP2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FP2"^^xsd:string ;
+    skos:notation "Fp2"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "0.2125"^^xsd:decimal ;
+    eego:scalp2DY "0.6949"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_FP2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FP2H"^^xsd:string ;
+    skos:notation "Fp2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1048"^^xsd:decimal ;
+    eego:scalp2DY "0.708"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FPZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FPZ"^^xsd:string ;
+    skos:notation "Fpz"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0026"^^xsd:decimal ;
+    eego:scalp2DY "0.7052"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FT10
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FT10"^^xsd:string ;
+    skos:notation "FT10"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.8809"^^xsd:decimal ;
+    eego:scalp2DY "0.2883"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FT10H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FT10H"^^xsd:string ;
+    skos:notation "FT10h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.8259"^^xsd:decimal ;
+    eego:scalp2DY "0.2624"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FT7
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FT7"^^xsd:string ;
+    skos:notation "FT7"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.7503"^^xsd:decimal ;
+    eego:scalp2DY "0.2452"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FT7H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FT7H"^^xsd:string ;
+    skos:notation "FT7h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.668"^^xsd:decimal ;
+    eego:scalp2DY "0.2348"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FT8
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FT8"^^xsd:string ;
+    skos:notation "FT8"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.7493"^^xsd:decimal ;
+    eego:scalp2DY "0.2568"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FT8H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FT8H"^^xsd:string ;
+    skos:notation "FT8h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.6681"^^xsd:decimal ;
+    eego:scalp2DY "0.2439"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FT9
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FT9"^^xsd:string ;
+    skos:notation "FT9"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.8759"^^xsd:decimal ;
+    eego:scalp2DY "0.2845"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FT9H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FT9H"^^xsd:string ;
+    skos:notation "FT9h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.8234"^^xsd:decimal ;
+    eego:scalp2DY "0.2569"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FTT10
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FTT10"^^xsd:string ;
+    skos:notation "FTT10"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.928"^^xsd:decimal ;
+    eego:scalp2DY "0.1331"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FTT10H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FTT10H"^^xsd:string ;
+    skos:notation "FTT10h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.8688"^^xsd:decimal ;
+    eego:scalp2DY "0.1156"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FTT7
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FTT7"^^xsd:string ;
+    skos:notation "FTT7"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.7885"^^xsd:decimal ;
+    eego:scalp2DY "0.1101"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FTT7H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FTT7H"^^xsd:string ;
+    skos:notation "FTT7h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.7003"^^xsd:decimal ;
+    eego:scalp2DY "0.1088"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FTT8
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FTT8"^^xsd:string ;
+    skos:notation "FTT8"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.7904"^^xsd:decimal ;
+    eego:scalp2DY "0.1222"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FTT8H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FTT8H"^^xsd:string ;
+    skos:notation "FTT8h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.7014"^^xsd:decimal ;
+    eego:scalp2DY "0.1175"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FTT9
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FTT9"^^xsd:string ;
+    skos:notation "FTT9"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.9186"^^xsd:decimal ;
+    eego:scalp2DY "0.13"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FTT9H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FTT9H"^^xsd:string ;
+    skos:notation "FTT9h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.8641"^^xsd:decimal ;
+    eego:scalp2DY "0.1124"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_FZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "FZ"^^xsd:string ;
+    skos:notation "Fz"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "-0.0006"^^xsd:decimal ;
+    eego:scalp2DY "0.3897"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_I1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "I1"^^xsd:string ;
+    skos:notation "I1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2507"^^xsd:decimal ;
+    eego:scalp2DY "-0.8485"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_I1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "I1H"^^xsd:string ;
+    skos:notation "I1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1275"^^xsd:decimal ;
+    eego:scalp2DY "-0.866"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_I2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "I2"^^xsd:string ;
+    skos:notation "I2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2438"^^xsd:decimal ;
+    eego:scalp2DY "-0.8528"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_I2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "I2H"^^xsd:string ;
+    skos:notation "I2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1195"^^xsd:decimal ;
+    eego:scalp2DY "-0.8682"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_IZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "IZ"^^xsd:string ;
+    skos:notation "Iz"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.004"^^xsd:decimal ;
+    eego:scalp2DY "-0.8672"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_M1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "M1"^^xsd:string ;
+    skos:notation "M1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.9295"^^xsd:decimal ;
+    eego:scalp2DY "-0.3427"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_M2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "M2"^^xsd:string ;
+    skos:notation "M2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.9341"^^xsd:decimal ;
+    eego:scalp2DY "-0.3493"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_O1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "O1"^^xsd:string ;
+    skos:notation "O1"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "-0.2107"^^xsd:decimal ;
+    eego:scalp2DY "-0.7146"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_O1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "O1H"^^xsd:string ;
+    skos:notation "O1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1067"^^xsd:decimal ;
+    eego:scalp2DY "-0.7267"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_O2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "O2"^^xsd:string ;
+    skos:notation "O2"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "0.2084"^^xsd:decimal ;
+    eego:scalp2DY "-0.7167"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_O2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "O2H"^^xsd:string ;
+    skos:notation "O2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1026"^^xsd:decimal ;
+    eego:scalp2DY "-0.7278"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_OI1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "OI1"^^xsd:string ;
+    skos:notation "OI1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2278"^^xsd:decimal ;
+    eego:scalp2DY "-0.7852"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_OI1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "OI1H"^^xsd:string ;
+    skos:notation "OI1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.115"^^xsd:decimal ;
+    eego:scalp2DY "-0.799"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_OI2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "OI2"^^xsd:string ;
+    skos:notation "OI2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2246"^^xsd:decimal ;
+    eego:scalp2DY "-0.7886"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_OI2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "OI2H"^^xsd:string ;
+    skos:notation "OI2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1097"^^xsd:decimal ;
+    eego:scalp2DY "-0.8004"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_OIZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "OIZ"^^xsd:string ;
+    skos:notation "OIz"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0032"^^xsd:decimal ;
+    eego:scalp2DY "-0.7963"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_OZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "OZ"^^xsd:string ;
+    skos:notation "Oz"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "-0.0025"^^xsd:decimal ;
+    eego:scalp2DY "-0.7238"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_P1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P1"^^xsd:string ;
+    skos:notation "P1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1577"^^xsd:decimal ;
+    eego:scalp2DY "-0.3864"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_P10
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P10"^^xsd:string ;
+    skos:notation "P10"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.7106"^^xsd:decimal ;
+    eego:scalp2DY "-0.598"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_P10H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P10H"^^xsd:string ;
+    skos:notation "P10h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.6531"^^xsd:decimal ;
+    eego:scalp2DY "-0.5632"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_P1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P1H"^^xsd:string ;
+    skos:notation "P1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0759"^^xsd:decimal ;
+    eego:scalp2DY "-0.3795"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_P2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P2"^^xsd:string ;
+    skos:notation "P2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1682"^^xsd:decimal ;
+    eego:scalp2DY "-0.3801"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_P2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P2H"^^xsd:string ;
+    skos:notation "P2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.0885"^^xsd:decimal ;
+    eego:scalp2DY "-0.3763"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_P3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P3"^^xsd:string ;
+    skos:notation "P3"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "-0.3184"^^xsd:decimal ;
+    eego:scalp2DY "-0.4095"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_P3H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P3H"^^xsd:string ;
+    skos:notation "P3h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2387"^^xsd:decimal ;
+    eego:scalp2DY "-0.3972"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_P4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P4"^^xsd:string ;
+    skos:notation "P4"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "0.3254"^^xsd:decimal ;
+    eego:scalp2DY "-0.404"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_P4H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P4H"^^xsd:string ;
+    skos:notation "P4h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2476"^^xsd:decimal ;
+    eego:scalp2DY "-0.391"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_P5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P5"^^xsd:string ;
+    skos:notation "P5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.467"^^xsd:decimal ;
+    eego:scalp2DY "-0.4504"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_P5H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P5H"^^xsd:string ;
+    skos:notation "P5h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3948"^^xsd:decimal ;
+    eego:scalp2DY "-0.4264"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_P6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P6"^^xsd:string ;
+    skos:notation "P6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4698"^^xsd:decimal ;
+    eego:scalp2DY "-0.4521"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_P6H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P6H"^^xsd:string ;
+    skos:notation "P6h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4002"^^xsd:decimal ;
+    eego:scalp2DY "-0.4235"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_P7
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P7"^^xsd:string ;
+    skos:notation "P7"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "-0.5996"^^xsd:decimal ;
+    eego:scalp2DY "-0.506"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_P7H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P7H"^^xsd:string ;
+    skos:notation "P7h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.5344"^^xsd:decimal ;
+    eego:scalp2DY "-0.4797"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_P8
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P8"^^xsd:string ;
+    skos:notation "P8"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "0.6027"^^xsd:decimal ;
+    eego:scalp2DY "-0.5076"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_P8H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P8H"^^xsd:string ;
+    skos:notation "P8h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.5404"^^xsd:decimal ;
+    eego:scalp2DY "-0.4756"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_P9
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P9"^^xsd:string ;
+    skos:notation "P9"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.7118"^^xsd:decimal ;
+    eego:scalp2DY "-0.5916"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_P9H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "P9H"^^xsd:string ;
+    skos:notation "P9h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.653"^^xsd:decimal ;
+    eego:scalp2DY "-0.5596"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO1"^^xsd:string ;
+    skos:notation "PO1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1197"^^xsd:decimal ;
+    eego:scalp2DY "-0.5641"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO10
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO10"^^xsd:string ;
+    skos:notation "PO10"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4877"^^xsd:decimal ;
+    eego:scalp2DY "-0.768"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO10H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO10H"^^xsd:string ;
+    skos:notation "PO10h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4471"^^xsd:decimal ;
+    eego:scalp2DY "-0.7112"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO1H"^^xsd:string ;
+    skos:notation "PO1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0606"^^xsd:decimal ;
+    eego:scalp2DY "-0.5598"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO2"^^xsd:string ;
+    skos:notation "PO2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1201"^^xsd:decimal ;
+    eego:scalp2DY "-0.5653"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO2H"^^xsd:string ;
+    skos:notation "PO2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.06"^^xsd:decimal ;
+    eego:scalp2DY "-0.5621"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO3"^^xsd:string ;
+    skos:notation "PO3"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2348"^^xsd:decimal ;
+    eego:scalp2DY "-0.5742"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO3H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO3H"^^xsd:string ;
+    skos:notation "PO3h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.178"^^xsd:decimal ;
+    eego:scalp2DY "-0.5692"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO4"^^xsd:string ;
+    skos:notation "PO4"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2332"^^xsd:decimal ;
+    eego:scalp2DY "-0.5796"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO4H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO4H"^^xsd:string ;
+    skos:notation "PO4h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1771"^^xsd:decimal ;
+    eego:scalp2DY "-0.5714"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO5"^^xsd:string ;
+    skos:notation "PO5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3329"^^xsd:decimal ;
+    eego:scalp2DY "-0.6023"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO5H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO5H"^^xsd:string ;
+    skos:notation "PO5h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2866"^^xsd:decimal ;
+    eego:scalp2DY "-0.5857"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO6"^^xsd:string ;
+    skos:notation "PO6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.3354"^^xsd:decimal ;
+    eego:scalp2DY "-0.6019"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO6H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO6H"^^xsd:string ;
+    skos:notation "PO6h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2873"^^xsd:decimal ;
+    eego:scalp2DY "-0.5878"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO7
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO7"^^xsd:string ;
+    skos:notation "PO7"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4141"^^xsd:decimal ;
+    eego:scalp2DY "-0.6444"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO7H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO7H"^^xsd:string ;
+    skos:notation "PO7h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3744"^^xsd:decimal ;
+    eego:scalp2DY "-0.6235"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO8
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO8"^^xsd:string ;
+    skos:notation "PO8"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4142"^^xsd:decimal ;
+    eego:scalp2DY "-0.6468"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO8H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO8H"^^xsd:string ;
+    skos:notation "PO8h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.3749"^^xsd:decimal ;
+    eego:scalp2DY "-0.6254"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO9
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO9"^^xsd:string ;
+    skos:notation "PO9"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4919"^^xsd:decimal ;
+    eego:scalp2DY "-0.7613"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PO9H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PO9H"^^xsd:string ;
+    skos:notation "PO9h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4496"^^xsd:decimal ;
+    eego:scalp2DY "-0.7086"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO1"^^xsd:string ;
+    skos:notation "POO1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0911"^^xsd:decimal ;
+    eego:scalp2DY "-0.6371"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO10
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO10"^^xsd:string ;
+    skos:notation "POO10"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.367"^^xsd:decimal ;
+    eego:scalp2DY "-0.8199"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO10H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO10H"^^xsd:string ;
+    skos:notation "POO10h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.337"^^xsd:decimal ;
+    eego:scalp2DY "-0.7571"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO1H"^^xsd:string ;
+    skos:notation "POO1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.048"^^xsd:decimal ;
+    eego:scalp2DY "-0.6424"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO2"^^xsd:string ;
+    skos:notation "POO2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.0867"^^xsd:decimal ;
+    eego:scalp2DY "-0.6466"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO2H"^^xsd:string ;
+    skos:notation "POO2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.0418"^^xsd:decimal ;
+    eego:scalp2DY "-0.648"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO3"^^xsd:string ;
+    skos:notation "POO3"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1749"^^xsd:decimal ;
+    eego:scalp2DY "-0.6476"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO3H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO3H"^^xsd:string ;
+    skos:notation "POO3h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.133"^^xsd:decimal ;
+    eego:scalp2DY "-0.6434"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO4"^^xsd:string ;
+    skos:notation "POO4"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1738"^^xsd:decimal ;
+    eego:scalp2DY "-0.6493"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO4H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO4H"^^xsd:string ;
+    skos:notation "POO4h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1309"^^xsd:decimal ;
+    eego:scalp2DY "-0.6481"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO5"^^xsd:string ;
+    skos:notation "POO5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2508"^^xsd:decimal ;
+    eego:scalp2DY "-0.6614"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO5H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO5H"^^xsd:string ;
+    skos:notation "POO5h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2162"^^xsd:decimal ;
+    eego:scalp2DY "-0.6504"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO6"^^xsd:string ;
+    skos:notation "POO6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2535"^^xsd:decimal ;
+    eego:scalp2DY "-0.66"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO6H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO6H"^^xsd:string ;
+    skos:notation "POO6h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2135"^^xsd:decimal ;
+    eego:scalp2DY "-0.6559"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO7
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO7"^^xsd:string ;
+    skos:notation "POO7"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3136"^^xsd:decimal ;
+    eego:scalp2DY "-0.6874"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO7H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO7H"^^xsd:string ;
+    skos:notation "POO7h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2843"^^xsd:decimal ;
+    eego:scalp2DY "-0.6728"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO8
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO8"^^xsd:string ;
+    skos:notation "POO8"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.3124"^^xsd:decimal ;
+    eego:scalp2DY "-0.6897"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO8H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO8H"^^xsd:string ;
+    skos:notation "POO8h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2846"^^xsd:decimal ;
+    eego:scalp2DY "-0.6737"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO9
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO9"^^xsd:string ;
+    skos:notation "POO9"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3724"^^xsd:decimal ;
+    eego:scalp2DY "-0.8145"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POO9H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POO9H"^^xsd:string ;
+    skos:notation "POO9h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3397"^^xsd:decimal ;
+    eego:scalp2DY "-0.7554"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POOZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POOZ"^^xsd:string ;
+    skos:notation "POOz"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0019"^^xsd:decimal ;
+    eego:scalp2DY "-0.6439"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_POZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "POZ"^^xsd:string ;
+    skos:notation "POz"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0013"^^xsd:decimal ;
+    eego:scalp2DY "-0.5575"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO1
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO1"^^xsd:string ;
+    skos:notation "PPO1"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.1442"^^xsd:decimal ;
+    eego:scalp2DY "-0.4742"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO10
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO10"^^xsd:string ;
+    skos:notation "PPO10"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.604"^^xsd:decimal ;
+    eego:scalp2DY "-0.6948"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO10H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO10H"^^xsd:string ;
+    skos:notation "PPO10h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.553"^^xsd:decimal ;
+    eego:scalp2DY "-0.6489"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO1H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO1H"^^xsd:string ;
+    skos:notation "PPO1h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.071"^^xsd:decimal ;
+    eego:scalp2DY "-0.4717"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO2
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO2"^^xsd:string ;
+    skos:notation "PPO2"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.1479"^^xsd:decimal ;
+    eego:scalp2DY "-0.4694"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO2H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO2H"^^xsd:string ;
+    skos:notation "PPO2h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.0757"^^xsd:decimal ;
+    eego:scalp2DY "-0.4658"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO3"^^xsd:string ;
+    skos:notation "PPO3"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2841"^^xsd:decimal ;
+    eego:scalp2DY "-0.4919"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO3H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO3H"^^xsd:string ;
+    skos:notation "PPO3h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.2148"^^xsd:decimal ;
+    eego:scalp2DY "-0.483"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO4"^^xsd:string ;
+    skos:notation "PPO4"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2851"^^xsd:decimal ;
+    eego:scalp2DY "-0.4913"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO4H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO4H"^^xsd:string ;
+    skos:notation "PPO4h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.2183"^^xsd:decimal ;
+    eego:scalp2DY "-0.4773"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO5"^^xsd:string ;
+    skos:notation "PPO5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4048"^^xsd:decimal ;
+    eego:scalp2DY "-0.532"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO5H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO5H"^^xsd:string ;
+    skos:notation "PPO5h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.3477"^^xsd:decimal ;
+    eego:scalp2DY "-0.5068"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO6"^^xsd:string ;
+    skos:notation "PPO6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.4101"^^xsd:decimal ;
+    eego:scalp2DY "-0.5274"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO6H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO6H"^^xsd:string ;
+    skos:notation "PPO6h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.3487"^^xsd:decimal ;
+    eego:scalp2DY "-0.5092"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO7
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO7"^^xsd:string ;
+    skos:notation "PPO7"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.5102"^^xsd:decimal ;
+    eego:scalp2DY "-0.5845"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO7H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO7H"^^xsd:string ;
+    skos:notation "PPO7h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.4614"^^xsd:decimal ;
+    eego:scalp2DY "-0.5545"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO8
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO8"^^xsd:string ;
+    skos:notation "PPO8"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.5115"^^xsd:decimal ;
+    eego:scalp2DY "-0.5872"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO8H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO8H"^^xsd:string ;
+    skos:notation "PPO8h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.461"^^xsd:decimal ;
+    eego:scalp2DY "-0.5585"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO9
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO9"^^xsd:string ;
+    skos:notation "PPO9"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.6061"^^xsd:decimal ;
+    eego:scalp2DY "-0.6886"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPO9H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPO9H"^^xsd:string ;
+    skos:notation "PPO9h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.5547"^^xsd:decimal ;
+    eego:scalp2DY "-0.6439"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PPOZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PPOZ"^^xsd:string ;
+    skos:notation "PPOz"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.0008"^^xsd:decimal ;
+    eego:scalp2DY "-0.4681"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_PZ
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "PZ"^^xsd:string ;
+    skos:notation "Pz"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "-0.0004"^^xsd:decimal ;
+    eego:scalp2DY "-0.3777"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_T10
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "T10"^^xsd:string ;
+    skos:notation "T10"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.9435"^^xsd:decimal ;
+    eego:scalp2DY "-0.0353"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_T10H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "T10H"^^xsd:string ;
+    skos:notation "T10h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.8781"^^xsd:decimal ;
+    eego:scalp2DY "-0.0432"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_T3
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "T3"^^xsd:string ;
+    skos:notation "T3"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.7985"^^xsd:decimal ;
+    eego:scalp2DY "-0.0328"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_T4
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "T4"^^xsd:string ;
+    skos:notation "T4"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.8026"^^xsd:decimal ;
+    eego:scalp2DY "-0.0233"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_T5
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "T5"^^xsd:string ;
+    skos:notation "T5"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.5996"^^xsd:decimal ;
+    eego:scalp2DY "-0.506"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_T6
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "T6"^^xsd:string ;
+    skos:notation "T6"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.6027"^^xsd:decimal ;
+    eego:scalp2DY "-0.5076"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_T7
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "T7"^^xsd:string ;
+    skos:notation "T7"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "-0.7985"^^xsd:decimal ;
+    eego:scalp2DY "-0.0328"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_T7H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "T7H"^^xsd:string ;
+    skos:notation "T7h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.7097"^^xsd:decimal ;
+    eego:scalp2DY "-0.0239"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_T8
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "T8"^^xsd:string ;
+    skos:notation "T8"^^xsd:string ;
+    skos:note     "International 10/20 system."^^xsd:string ;
+    eego:scalp2DX "0.8026"^^xsd:decimal ;
+    eego:scalp2DY "-0.0233"^^xsd:decimal ;
+    dcterms:source <https://www.iec.ch/publication/5708> .
+
+eego:Electrode_T8H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "T8H"^^xsd:string ;
+    skos:notation "T8h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.7124"^^xsd:decimal ;
+    eego:scalp2DY "-0.0158"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_T9
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "T9"^^xsd:string ;
+    skos:notation "T9"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.9365"^^xsd:decimal ;
+    eego:scalp2DY "-0.0297"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_T9H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "T9H"^^xsd:string ;
+    skos:notation "T9h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.8743"^^xsd:decimal ;
+    eego:scalp2DY "-0.0428"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TP10
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TP10"^^xsd:string ;
+    skos:notation "TP10"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.8703"^^xsd:decimal ;
+    eego:scalp2DY "-0.3475"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TP10H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TP10H"^^xsd:string ;
+    skos:notation "TP10h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.8089"^^xsd:decimal ;
+    eego:scalp2DY "-0.33"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TP7
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TP7"^^xsd:string ;
+    skos:notation "TP7"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.7388"^^xsd:decimal ;
+    eego:scalp2DY "-0.2932"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TP7H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TP7H"^^xsd:string ;
+    skos:notation "TP7h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.6577"^^xsd:decimal ;
+    eego:scalp2DY "-0.2734"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TP8
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TP8"^^xsd:string ;
+    skos:notation "TP8"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.7436"^^xsd:decimal ;
+    eego:scalp2DY "-0.2916"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TP8H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TP8H"^^xsd:string ;
+    skos:notation "TP8h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.6618"^^xsd:decimal ;
+    eego:scalp2DY "-0.2668"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TP9
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TP9"^^xsd:string ;
+    skos:notation "TP9"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.8682"^^xsd:decimal ;
+    eego:scalp2DY "-0.3397"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TP9H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TP9H"^^xsd:string ;
+    skos:notation "TP9h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.8056"^^xsd:decimal ;
+    eego:scalp2DY "-0.3276"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TPP10
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TPP10"^^xsd:string ;
+    skos:notation "TPP10"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.8008"^^xsd:decimal ;
+    eego:scalp2DY "-0.4791"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TPP10H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TPP10H"^^xsd:string ;
+    skos:notation "TPP10h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.7414"^^xsd:decimal ;
+    eego:scalp2DY "-0.4578"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TPP7
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TPP7"^^xsd:string ;
+    skos:notation "TPP7"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.6781"^^xsd:decimal ;
+    eego:scalp2DY "-0.4081"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TPP7H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TPP7H"^^xsd:string ;
+    skos:notation "TPP7h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.6023"^^xsd:decimal ;
+    eego:scalp2DY "-0.3838"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TPP8
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TPP8"^^xsd:string ;
+    skos:notation "TPP8"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.6825"^^xsd:decimal ;
+    eego:scalp2DY "-0.4083"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TPP8H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TPP8H"^^xsd:string ;
+    skos:notation "TPP8h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.6073"^^xsd:decimal ;
+    eego:scalp2DY "-0.3798"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TPP9
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TPP9"^^xsd:string ;
+    skos:notation "TPP9"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.8005"^^xsd:decimal ;
+    eego:scalp2DY "-0.4722"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TPP9H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TPP9H"^^xsd:string ;
+    skos:notation "TPP9h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.74"^^xsd:decimal ;
+    eego:scalp2DY "-0.4536"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TTP10
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TTP10"^^xsd:string ;
+    skos:notation "TTP10"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.9209"^^xsd:decimal ;
+    eego:scalp2DY "-0.1997"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TTP10H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TTP10H"^^xsd:string ;
+    skos:notation "TTP10h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.8543"^^xsd:decimal ;
+    eego:scalp2DY "-0.1902"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TTP7
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TTP7"^^xsd:string ;
+    skos:notation "TTP7"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.7798"^^xsd:decimal ;
+    eego:scalp2DY "-0.1691"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TTP7H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TTP7H"^^xsd:string ;
+    skos:notation "TTP7h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.6933"^^xsd:decimal ;
+    eego:scalp2DY "-0.1516"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TTP8
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TTP8"^^xsd:string ;
+    skos:notation "TTP8"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.7855"^^xsd:decimal ;
+    eego:scalp2DY "-0.1641"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TTP8H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TTP8H"^^xsd:string ;
+    skos:notation "TTP8h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "0.6971"^^xsd:decimal ;
+    eego:scalp2DY "-0.1464"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TTP9
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TTP9"^^xsd:string ;
+    skos:notation "TTP9"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.9164"^^xsd:decimal ;
+    eego:scalp2DY "-0.192"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .
+
+eego:Electrode_TTP9H
+    a owl:NamedIndividual, eego:Electrode ;
+    rdfs:label    "TTP9H"^^xsd:string ;
+    skos:notation "TTP9h"^^xsd:string ;
+    skos:note     "International 10/10 and 10/5 system."^^xsd:string ;
+    eego:scalp2DX "-0.8515"^^xsd:decimal ;
+    eego:scalp2DY "-0.1902"^^xsd:decimal ;
+    dcterms:source <https://doi.org/10.1016/j.clinph.2007.04.223> .

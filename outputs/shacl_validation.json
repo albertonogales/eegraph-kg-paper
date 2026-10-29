@@ -1,0 +1,18 @@
+{
+  "chb01_seizure": {
+    "conforms": true,
+    "n_violations": 0
+  },
+  "chb01_nonsz": {
+    "conforms": true,
+    "n_violations": 0
+  },
+  "S001_rest": {
+    "conforms": true,
+    "n_violations": 0
+  },
+  "S001_task": {
+    "conforms": true,
+    "n_violations": 0
+  }
+}
