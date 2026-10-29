@@ -123,8 +123,11 @@ If you use this code or the knowledge graphs, please cite:
 
 ```bibtex
 @article{nogales2026eegkg,
-  title   = {Representing {EEG} Functional Connectivity as a {FAIR} Knowledge Graph},
-  author  = {Nogales, Alberto and Garc{\'i}a-Tejedor, {\'A}lvaro J.},
+  title   = {From Electroencephalography Connectivity to a {FAIR} Knowledge Graph:
+             An Ontology and Pipeline for Epilepsy and Motor-Imagery},
+  author  = {Nogales, Alberto and Ballesteros-Rodr{\'i}guez, Alberto and
+             Mora-Cantallops, Mar{\c{c}}al and Sicilia, Miguel {\'A}ngel and
+             Garc{\'i}a-Barriocanal, Elena},
   journal = {--},
   year    = {2026},
   doi     = {--}
